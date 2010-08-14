@@ -36,7 +36,20 @@ public class EqualizerPreference extends Preference {
 				int wy = v.getHeight();
 				
 				int band = (int) (x * 5 / wx);
-				float level = (y / wy) * (EqualizerSurface.MIN_DB - EqualizerSurface.MAX_DB) - EqualizerSurface.MIN_DB;				
+				if (band < 0) {
+					band = 0;
+				}
+				if (band > levels.length - 1) {
+					band = levels.length - 1;
+				}
+
+				float level = (y / wy) * (EqualizerSurface.MIN_DB - EqualizerSurface.MAX_DB) - EqualizerSurface.MIN_DB;
+				if (level < EqualizerSurface.MIN_DB) {
+					level = EqualizerSurface.MIN_DB;
+				}
+				if (level > EqualizerSurface.MAX_DB) {
+					level = EqualizerSurface.MAX_DB;
+				}
 				levels[band] = level;
 				
 				String levelString = "";

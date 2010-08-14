@@ -105,61 +105,25 @@ class Complex {
  * @author alankila
  */
 class Biquad {
-	float b0, b1, b2, a0, a1, a2;
+	private Complex b0, b1, b2, a0, a1, a2;
 
-	protected void setPeakingBandEqualizer(float centerFrequency, float samplingFrequency, float dbGain, float bandwidth) {
-        double w0 = 2 * Math.PI * centerFrequency / samplingFrequency;
-        double A = Math.pow(10, dbGain/40);
-        double alpha = Math.sin(w0)/2 * Math.sinh( Math.log(2)/2 * bandwidth * w0/Math.sin(w0) );
-
-        b0 = (float) (1 + alpha*A);
-        b1 = (float) (-2*Math.cos(w0));
-        b2 = (float) (1 - alpha*A);
-        a0 = (float) (1 + alpha/A);
-        a1 = (float) (-2*Math.cos(w0));
-        a2 = (float) (1 - alpha/A);
-	}
-	
-	protected void setLowShelf(float centerFrequency, float samplingFrequency, float dbGain, float slope) {
-        double w0 = 2 * Math.PI * centerFrequency / samplingFrequency;
-        double A = Math.pow(10, dbGain/40);
-        double alpha = Math.sin(w0)/2 * Math.sqrt( (A + 1/A)*(1/slope - 1) + 2);
-
-        b0 = (float) (A*((A+1) - (A-1)  *Math.cos(w0) + 2*Math.sqrt(A)*alpha));
-        b1 = (float) (2*A*((A-1) - (A+1)*Math.cos(w0)));
-        b2 = (float) (A*((A+1) - (A-1)  *Math.cos(w0) - 2*Math.sqrt(A)*alpha));
-        a0 = (float) ((A+1) + (A-1)     *Math.cos(w0) + 2*Math.sqrt(A)*alpha);
-        a1 = (float) (-2*((A-1) + (A+1) *Math.cos(w0)));
-        a2 = (float) ((A+1) + (A-1)     *Math.cos(w0) - 2*Math.sqrt(A)*alpha);
-	}
-	
 	protected void setHighShelf(float centerFrequency, float samplingFrequency, float dbGain, float slope) {
         double w0 = 2 * Math.PI * centerFrequency / samplingFrequency;
         double A = Math.pow(10, dbGain/40);
         double alpha = Math.sin(w0)/2 * Math.sqrt( (A + 1/A)*(1/slope - 1) + 2);
 
-        b0 = (float) (A*((A+1) + (A-1)   *Math.cos(w0) + 2*Math.sqrt(A)*alpha));
-        b1 = (float) (-2*A*((A-1) + (A+1)*Math.cos(w0)));
-        b2 = (float) (A*((A+1) + (A-1)   *Math.cos(w0) - 2*Math.sqrt(A)*alpha));
-        a0 = (float) ((A+1) - (A-1)      *Math.cos(w0) + 2*Math.sqrt(A)*alpha);
-        a1 = (float) (2*((A-1) - (A+1)   *Math.cos(w0)));
-        a2 = (float) ((A+1) - (A-1)      *Math.cos(w0) - 2*Math.sqrt(A)*alpha);
+        b0 = new Complex((float) (A*((A+1) + (A-1)   *Math.cos(w0) + 2*Math.sqrt(A)*alpha)), 0);
+        b1 = new Complex((float) (-2*A*((A-1) + (A+1)*Math.cos(w0))), 0);
+        b2 = new Complex((float) (A*((A+1) + (A-1)   *Math.cos(w0) - 2*Math.sqrt(A)*alpha)), 0);
+        a0 = new Complex((float) ((A+1) - (A-1)      *Math.cos(w0) + 2*Math.sqrt(A)*alpha), 0);
+        a1 = new Complex((float) (2*((A-1) - (A+1)   *Math.cos(w0))), 0);
+        a2 = new Complex((float) ((A+1) - (A-1)      *Math.cos(w0) - 2*Math.sqrt(A)*alpha), 0);
 	}
 	
 	protected Complex evaluateTransfer(Complex z) {
-		Complex nom, den;
 		Complex zSquared = z.mul(z);
-		
-		// b0 + b1 / z + b2 / (z*z)
-		nom = new Complex(b0, 0)
-			.add(new Complex(b1, 0).div(z))
-			.add(new Complex(b2, 0).div(zSquared));
-
-		// a0 + a1 / z + a2 / (z*z)
-		den = new Complex(a0, 0)
-			.add(new Complex(a1, 0).div(z))
-			.add(new Complex(a2, 0).div(zSquared));
-		
+		Complex nom = b0.add(b1.div(z)).add(b2.div(zSquared));
+		Complex den = a0.add(a1.div(z)).add(a2.div(zSquared));
 		return nom.div(den);
 	}
 }
@@ -175,7 +139,7 @@ public class EqualizerSurface extends SurfaceView {
 	private final int height;
 	
 	float[] levels = new float[5];
-	private final Paint white, gray, green, red;
+	private final Paint white, gray, green, purple, red;
 	
 	public EqualizerSurface(Context context, AttributeSet attributeSet) {
 		super(context, attributeSet);
@@ -200,6 +164,10 @@ public class EqualizerSurface extends SurfaceView {
 		green = new Paint();
 		green.setColor(0x8800ff00);
 		green.setStyle(Style.STROKE);
+
+		purple = new Paint();
+		purple.setColor(0x88ff00ff);
+		purple.setStyle(Style.STROKE);
 
 		red = new Paint();
 		red.setColor(0x88ff0000);
@@ -245,6 +213,10 @@ public class EqualizerSurface extends SurfaceView {
 				new Biquad(),
 		};
 		
+		/* The filtering is realized with cascaded 2nd order high shelves, and each band
+		 * is realized as a transition relative to the previous band.
+		 * 1st band has no previous band, so it's just a fixed gain.
+		 */
 		float gain = (float) Math.pow(10, levels[0] / 20);
 		biquads[0].setHighShelf(250f / 2f, SAMPLING_RATE, levels[1] - levels[0], 1f);
 		biquads[1].setHighShelf(1000f / 2, SAMPLING_RATE, levels[2] - levels[1], 1f);
@@ -252,30 +224,38 @@ public class EqualizerSurface extends SurfaceView {
 		biquads[3].setHighShelf(16000f / 2, SAMPLING_RATE, levels[4] - levels[3], 1f);
 		
 		/* Now evaluate the tone filter. This is a duplication of the filter design in AudioDSP.
-		 * The real filter is integer-based and suffers from approximations; this one is realized
-		 * nearly perfectly. */
+		 * The real filter is integer-based and suffers from approximations, which are not modeled. */
 		float oldx = 0;
-		float oldy = 0;
+		float olddB = 0;
+		//float olds = 0;
 		for (float freq = MIN_FREQ; freq < MAX_FREQ; freq *= 1.2f) {
 			float omega = freq / SAMPLING_RATE * (float) Math.PI * 2;
 			Complex z = new Complex((float) Math.cos(omega), (float) Math.sin(omega));
 
-			float r1 = z.mul(gain).rho();
-			float r2 = biquads[0].evaluateTransfer(z).rho();
-			float r3 = biquads[1].evaluateTransfer(z).rho();
-			float r4 = biquads[2].evaluateTransfer(z).rho();
-			float r5 = biquads[3].evaluateTransfer(z).rho();
-			
-			float dB = lin2dB(r1 * r2 * r3 * r4 * r5);
+			/* Evaluate the response at frequency z */
+			Complex z1 = z.mul(gain);
+			Complex z2 = biquads[0].evaluateTransfer(z);
+			Complex z3 = biquads[1].evaluateTransfer(z);
+			Complex z4 = biquads[2].evaluateTransfer(z);
+			Complex z5 = biquads[3].evaluateTransfer(z);
 
+			/* Magnitude response, dB */
+			float dB = lin2dB(z1.rho() * z2.rho() * z3.rho() * z4.rho() * z5.rho());
+			float newBb = projectY(dB) * height;
+
+			/* Time delay response, s */
+			//float s = (z1.theta() + z2.theta() + z3.theta() + z4.theta() + z5.theta()) / (float) Math.PI / freq;
+			//float news = projectY(s * 1000) * height;
+			
 			float newx = projectX(freq) * width;
-			float newy = projectY(dB) * height;
 			
 			if (oldx != 0) {
-				canvas.drawLine(oldx, oldy, newx, newy, green);
+				canvas.drawLine(oldx, olddB, newx, newBb, green);
+				//canvas.drawLine(oldx, olds, newx, news, purple);
 			}
 			oldx = newx;
-			oldy = newy;
+			olddB = newBb;
+			//olds = news;
 		}
 		
 		for (int i = 0; i < levels.length; i ++) {
