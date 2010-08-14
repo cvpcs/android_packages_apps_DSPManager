@@ -17,11 +17,14 @@ public class ServiceLaunchReceiver extends BroadcastReceiver {
 	public void onReceive(Context context, Intent intent) {
 		SharedPreferences preferencesHeadset = context.getSharedPreferences(DSPManager.SHARED_PREFERENCES_BASENAME + ".headset", 0);
 		SharedPreferences preferencesSpeaker = context.getSharedPreferences(DSPManager.SHARED_PREFERENCES_BASENAME + ".speaker", 0);
+		SharedPreferences preferencesBluetooth = context.getSharedPreferences(DSPManager.SHARED_PREFERENCES_BASENAME + ".bluetooth", 0);
 
 		boolean serviceNeeded = false;
 	    	
 		/* check through the config if any of the master checkboxes are set. */
-		for (SharedPreferences p : new SharedPreferences[] { preferencesHeadset, preferencesSpeaker }) {
+		for (SharedPreferences p : new SharedPreferences[] {
+				preferencesHeadset, preferencesSpeaker, preferencesBluetooth
+		}) {
 			for (String s : new String[] {
 					"dsp.compression.enable",
 					"dsp.tone.enable",
