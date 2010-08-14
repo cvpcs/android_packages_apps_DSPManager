@@ -7,6 +7,7 @@ import android.preference.Preference;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.View.OnLongClickListener;
 import android.view.View.OnTouchListener;
 
 import com.bel.android.dspmanager.R;
@@ -45,6 +46,13 @@ public class EqualizerPreference extends Preference {
 				EqualizerPreference.this.persistString(levelString);
 				
 				surface.setBand(band, level);
+				return true;
+			}
+		});
+		/* we consume longclicks */
+		surface.setOnLongClickListener(new OnLongClickListener() {
+			@Override
+			public boolean onLongClick(View v) {
 				return true;
 			}
 		});

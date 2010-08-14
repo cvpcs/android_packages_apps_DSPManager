@@ -171,12 +171,24 @@ public class EqualizerSurface extends SurfaceView {
 	public static int MIN_DB = -6;
 	public static int MAX_DB = 6;
 	
+	private final int width;
+	private final int height;
+	
 	float[] levels = new float[5];
 	private final Paint white, gray, green, red;
 	
 	public EqualizerSurface(Context context, AttributeSet attributeSet) {
 		super(context, attributeSet);
 
+		/* One day when I'm crazy enough I'll work out how to extract this shit from attributeSet. */
+		/* Width can't be taken from the canvas itself passed to onDraw() because android passes
+		 * different sized canvases to the method. Yay android. */
+		width = 300;
+		height = 150;
+
+		/* Also, these fuckers by default disable their own drawing. WTF? */
+		setWillNotDraw(false);
+		
 		white = new Paint();
 		white.setColor(0xffffffff);
 		white.setStyle(Style.STROKE);
@@ -196,26 +208,13 @@ public class EqualizerSurface extends SurfaceView {
 
 	public void setBand(int i, float value) {
 		levels[i] = value;		
-		invalidate();
-	}
-	
-	@Override
-	public void invalidate() {
-		/* Default invalidate() doesn't seem to do anything? Fuck it. */
-		Canvas c = getHolder().lockCanvas();
-		if (c != null) {
-			onDraw(c);
-			getHolder().unlockCanvasAndPost(c);
-		}
+		postInvalidate();
 	}
 	
 	@Override
 	protected void onDraw(Canvas canvas) {
 		/* clear canvas */
 		canvas.drawRGB(0, 0, 0);
-		
-		int width = canvas.getWidth();
-		int height = canvas.getHeight();
 		
 		canvas.drawRect(0, 0, width-1, height-1, white);
 
