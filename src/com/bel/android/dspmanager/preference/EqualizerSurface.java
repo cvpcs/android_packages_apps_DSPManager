@@ -156,6 +156,7 @@ public class EqualizerSurface extends SurfaceView {
 		white = new Paint();
 		white.setColor(0xffffffff);
 		white.setStyle(Style.STROKE);
+		white.setTextSize(8);
 
 		gray = new Paint();
 		gray.setColor(0x88ffffff);
@@ -199,11 +200,15 @@ public class EqualizerSurface extends SurfaceView {
 			
 			float x = projectX(freq) * width;
 			canvas.drawLine(x, 0, x, height - 1, gray);
+			if (freq == 100 || freq == 1000 || freq == 10000) {
+				canvas.drawText(freq < 1000 ? "" + freq : freq/1000 + "k", x, height-1, white);
+			}
 		}
 		
-		for (int db = MIN_DB; db < MAX_DB; db += 3) {
-			float y = projectY(db) * height;
+		for (int dB = MIN_DB; dB < MAX_DB; dB += 3) {
+			float y = projectY(dB) * height;
 			canvas.drawLine(0, y, width - 1, y, gray);
+			canvas.drawText(String.format("%+d", dB), 1, y-1, white);
 		}
 		
 		Biquad[] biquads = new Biquad[] {
